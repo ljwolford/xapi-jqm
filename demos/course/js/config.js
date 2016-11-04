@@ -11,6 +11,9 @@ Config.password = "xapijqm";
 // Local Storage email names -- should / cloud be unique across apps
 var storageKeyName = "xapi-jqm/name";
 var storageKeyEmail = "xapi-jqm/email";
+var storageKeyLaunch = "xapi-jqm/launch";
+var storageKeyURI = "xapi-jqm/uri";
+
 
 // "global" variables
 var moduleID = "http://adlnet.gov/xapi/samples/xapi-jqm/course/"; // trailing slash

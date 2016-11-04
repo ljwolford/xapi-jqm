@@ -2,25 +2,22 @@
 
 // Global Actor
 actor = getActor();
+// Global baseURI
+groupURI = getGroupURI();
 
 /* Page Change Logic */
-if ( actor  == false ) {
-    checkLoggedIn();
-} else { // silly thing to wrap in an else but I need to restructure the code to handle a missing actor on login page
+// if ( actor == false ) {
+//     checkLoggedIn();
+// } else { // silly thing to wrap in an else but I need to restructure the code to handle a missing actor on login page
+//     doConfig();
 
-    doConfig();
+// } // end silly else
 
-    // Handle chapter clicks to send launch statements
-    $( document ).on("vclick", "a.chapter", function() {
-        $chapter = $(this);
-        var chapter = $chapter.parent("li").attr("id");
-        var name = $chapter.text();
-        chapterLaunched(chapter, name);
-    });
 
-    // Abstracted page changing logic -- catch-all
-    $( window ).on("pagechange", function(event) {
+// Abstracted page changing logic -- catch-all
+$( window ).on("pagechange", function(event) {
 
+    if (getLaunch()){
         var chapter = $("body").attr("data-chapter");
         var pageID = $.mobile.activePage.attr("id");
         var activityID = moduleID + chapter + "/" + pageID;
@@ -43,10 +40,30 @@ if ( actor  == false ) {
 
         // Send a statement
         ADL.XAPIWrapper.sendStatement(stmt);
-        ADL.XAPIWrapper.sendState(moduleID, actor, "session-state", null, { "info": "reading", "chapter": chapter, "page": pageID });
+        ADL.XAPIWrapper.sendState(moduleID, actor, "session-state", null, { "info": "reading", "chapter": chapter, "page": pageID });        
+    }
+});
 
+// Handle chapter clicks to send launch statements
+$( document ).on("vclick", "a.chapter", function() {
+    $chapter = $(this);
+    var chapter = $chapter.parent("li").attr("id");
+    var name = $chapter.text();
+    chapterLaunched(chapter, name);
+});
+
+$( document ).ready(function() {
+    // Handle checkbox clicks -- basic no knowledge of context or checked
+    $(":checkbox").change(function(event) {
+        $checkbox = $(this);
+        var checkboxID = $checkbox.attr("id");
+        var checkboxName = $checkbox.siblings("label").text();
+        var chapter = $("body").attr("data-chapter");
+        var pageID = $.mobile.activePage.attr("id");
+        checkboxClicked(chapter, pageID, checkboxID, checkboxName);
     });
-} // end silly else
+});
+
 
 /* State functions */
 function getState() {
@@ -75,7 +92,7 @@ function setChapterComplete() {
     
     ADL.XAPIWrapper.sendState(moduleID, actor, "chapters-completed", null, { "chapters": union });
 
-    doConfig();
+    // doConfig();
 
     // statement for launching content
     var stmt = {
@@ -144,6 +161,20 @@ function setUserEmail(email) {
     localStorage.setItem(storageKeyEmail, email);
 }
 
+function setLaunch(launch) {
+    localStorage.setItem(storageKeyLaunch, launch);
+}
+function getLaunch() {
+    return localStorage.getItem(storageKeyLaunch);
+}
+
+function setGroupURI(uri) {
+    localStorage.setItem(storageKeyURI, uri);
+}
+function getGroupURI() {
+    return localStorage.getItem(storageKeyURI);
+}
+
 // Destroy all the things
 function clearActor() {
     localStorage.removeItem(storageKeyName);
@@ -158,22 +189,6 @@ function checkLoggedIn() {
     }
 }
 
-/*
-function getBaseURL() {
-    // silly regex hack for now #helpWanted
-    var regex = new RegExp("(index.html|.*\/chapters\/.*|.*\/glossary.html)");
-    var location = window.location.href;
-    if ( regex.test(location) ) {
-        var str = location.split("/").pop();
-        var baseurl = location.replace(str, "");
-        var str = "chapters/"
-        var baseurl = baseurl.replace(str, "");
-    } else {
-        // otherwise give up and send them to the github version
-        var baseurl = "http://adlnet.github.io/xapi-jqm/demos/course/";
-    }
-    return baseurl;
-}*/
 
 function userLogin() {
     // Should get the page root
@@ -183,6 +198,7 @@ function userLogin() {
 function userLogout() {
     courseExited();
     clearActor();
+    setLaunch(false);
     window.location = "../"; // lol
 }
 
@@ -219,7 +235,7 @@ function userRegisterSubmit() {
  */
 function checkboxClicked(chapter, pageID, checkboxID, checkboxName) {
     
-    doConfig();
+    // doConfig();
     
     // Figure out if it was checked or unchecked
     var isChecked = $("#"+checkboxID).prop('checked');
@@ -256,7 +272,7 @@ function checkboxClicked(chapter, pageID, checkboxID, checkboxName) {
  */
 function courseRegistered() {
     
-    doConfig();
+    // doConfig();
 
     // statement for launching content
     var stmt = {
@@ -273,8 +289,8 @@ function courseRegistered() {
 
 function courseLaunched() {
     
-    doConfig();
-
+    // doConfig();
+    setLaunch(true);
     // statement for launching content
     var stmt = {
         "actor": actor,
@@ -314,7 +330,7 @@ function chapterLaunched(chapter, name) {
 
 function courseMastered() {
     
-    doConfig();
+    // doConfig();
 
     // statement for launching content
     var stmt = {
@@ -331,7 +347,7 @@ function courseMastered() {
 
 function courseExited() {
 
-    doConfig();
+    // doConfig();
 
     // statement for launching content
     var stmt = {
@@ -353,49 +369,20 @@ function createContext( parentChapter, parentPage, subParentActivity, both, incl
         includeBA = true;
     }
 
-    if (includeBA){
-        var baseContext = {
-            "contextActivities": {
-                "parent": [
-                    baseActivity
-                ],
-                "grouping": [
-                    {
-                      "definition": {
-                        "name": {
-                          "en-US": "NATO E-Learning Forum xAPI Workshop"
-                        },
-                        "description": {
-                          "en-US": "NATO E-Learning Forum xAPI Workshop"
-                        }
-                      },
-                      "id": "http://adlnet.gov/xapi/workshops/2016/natoelearningforum/",
-                      "objectType": "Activity"
-                    }
-                ]
-            }
-        };        
-    } else{
-        var baseContext = {
-            "contextActivities": {
-                "grouping": [
-                    {
-                      "definition": {
-                        "name": {
-                          "en-US": "NATO E-Learning Forum xAPI Workshop"
-                        },
-                        "description": {
-                          "en-US": "NATO E-Learning Forum xAPI Workshop"
-                        }
-                      },
-                      "id": "http://adlnet.gov/xapi/workshops/2016/natoelearningforum/",
-                      "objectType": "Activity"
-                    }
-                ]
-            }
-        };        
-    }
+    var baseContext = {
+        "contextActivities": {
+            "grouping": [
+                {
+                  "id": getGroupURI,
+                  "objectType": "Activity"
+                }
+            ]
+        }
+    };
 
+    if (includeBA){
+        baseContext.contextActivities.parent = [baseActivity];       
+    }
     // set both
     if ( typeof both === "undefined") {
         both = false;
@@ -449,15 +436,3 @@ function createContext( parentChapter, parentPage, subParentActivity, both, incl
     }
     return baseContext;
 }
-
-$( document ).ready(function() {
-    // Handle checkbox clicks -- basic no knowledge of context or checked
-    $(":checkbox").change(function(event) {
-        $checkbox = $(this);
-        var checkboxID = $checkbox.attr("id");
-        var checkboxName = $checkbox.siblings("label").text();
-        var chapter = $("body").attr("data-chapter");
-        var pageID = $.mobile.activePage.attr("id");
-        checkboxClicked(chapter, pageID, checkboxID, checkboxName);
-    });
-});
